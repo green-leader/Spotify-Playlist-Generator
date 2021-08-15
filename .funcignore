@@ -1,0 +1,9 @@
+.git*
+.vscode
+local.settings.json
+test
+venv
+
+# Project specific files
+.cache
+.secrets
