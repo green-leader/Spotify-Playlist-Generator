@@ -52,3 +52,27 @@ while DailyDrive:
         DailyDrive = sp.next(DailyDrive)
     else:
         DailyDrive = None
+
+# Get URI list of shows being followed
+
+allEpisodes = list()
+
+savedShows = sp.current_user_saved_shows()
+while savedShows:
+    itemsSavedShows = [ showSavedShows['show']['uri'] for showSavedShows in savedShows['items'] ]
+
+    for itemSavedShow in itemsSavedShows:
+        episodes = [ episode for episode in sp.show_episodes(itemSavedShow)['items'] if not episode['resume_point']['fully_played']]
+        allEpisodes.extend(episodes)
+
+    if savedShows['next']:
+        savedShows = sp.next(savedShows)
+    else:
+        savedShows = None
+
+# sorted works on any iterable
+# reverse for descending order of date.
+allEpisodes = sorted(allEpisodes, key=lambda episode: episode['release_date'], reverse=True)
+
+singleEpisodes = [ episode['uri'] for episode in allEpisodes[:99] ]
+sp.playlist_add_items(DailyListenID, items=singleEpisodes)
