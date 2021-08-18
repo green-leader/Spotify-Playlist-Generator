@@ -1,6 +1,9 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
+# list of podcast shows to filter out
+filter_show = ['spotify:show:6v1kAUP76SLtLI7ApsEgdH', 'spotify:show:0RrdRP2clWr5XCAYYA2j2A']
+
 with open("./.secrets") as f:
     CLIENT_SECRET = f.read().splitlines()[0]
 
@@ -23,6 +26,17 @@ def get_playlist(field, search):
         else:
             playlists = None
     return None
+
+
+def cullBlacklist(items, filterList):
+    itemEpisodes = [ show for show in items if show.split(':')[1] == 'episode' ]
+    episodeLookup = [ [episode['show']['uri'], episode['uri']] for episode in sp.episodes(itemEpisodes)['episodes'] ]
+    
+    for x in episodeLookup:
+        if x[0] in filterList:
+            items.remove(x[1])
+    return items
+
 
 DailyDriveID = get_playlist('name', 'Daily Drive')
 
@@ -47,6 +61,11 @@ fields='items(track(uri)),next' # Next permits pagination
 DailyDrive = sp.playlist_items(DailyDriveID, fields=fields)
 while DailyDrive:
     itemsDailyDrive = [ trackDailyDrive['track']['uri'] for trackDailyDrive in DailyDrive['items'] ]
+
+    # Cull out blacklisted shows
+    filterDailyDrive = cullBlacklist(itemsDailyDrive, filter_show)
+
+
     sp.playlist_add_items(DailyListenID, items=itemsDailyDrive)
     if DailyDrive['next']:
         DailyDrive = sp.next(DailyDrive)
@@ -96,11 +115,9 @@ allEpisodes = sorted(allEpisodes, key=lambda episode: episode['release_date'], r
 # Get count of songs, we want half of that for podcasts
 totalDailyDrive = len(itemsDailyDrive)
 songCount = 0
-print(itemsDailyDrive)
 for x in itemsDailyDrive:
     if x.split(':')[1] == "track":
         songCount = songCount + 1
-print(songCount)
 
 singleEpisodes = [ episode['uri'] for episode in allEpisodes[:round(songCount/2)] ]
 sp.playlist_add_items(DailyListenID, items=singleEpisodes)
