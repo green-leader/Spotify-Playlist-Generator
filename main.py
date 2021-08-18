@@ -62,8 +62,27 @@ while savedShows:
     itemsSavedShows = [ showSavedShows['show']['uri'] for showSavedShows in savedShows['items'] ]
 
     for itemSavedShow in itemsSavedShows:
-        episodes = [ episode for episode in sp.show_episodes(itemSavedShow)['items'] if not episode['resume_point']['fully_played']]
-        allEpisodes.extend(episodes)
+
+        showEpisodes = sp.show_episodes(itemSavedShow)
+        episodeListing = list()
+        while showEpisodes:
+            
+            # Use pagination to grab batches of 50 and dump the episodes we've heard before.
+            # Don't move on until we have 50 from each show.
+            tempEpisodes = [ episode for episode in showEpisodes['items'] if not episode['resume_point']['fully_played'] \
+                and (episode['duration_ms'] - episode['resume_point']['resume_position_ms']) >= 120000 ]
+
+            if len(tempEpisodes) < 50:
+                episodeListing.extend(tempEpisodes)
+                tempEpisodes = None
+            else:
+                break 
+
+            if showEpisodes['next']:
+                showEpisodes = sp.next(showEpisodes)
+            else:
+                showEpisodes = None
+        allEpisodes.extend(episodeListing)
 
     if savedShows['next']:
         savedShows = sp.next(savedShows)
@@ -74,5 +93,14 @@ while savedShows:
 # reverse for descending order of date.
 allEpisodes = sorted(allEpisodes, key=lambda episode: episode['release_date'], reverse=True)
 
-singleEpisodes = [ episode['uri'] for episode in allEpisodes[:99] ]
+# Get count of songs, we want half of that for podcasts
+totalDailyDrive = len(itemsDailyDrive)
+songCount = 0
+print(itemsDailyDrive)
+for x in itemsDailyDrive:
+    if x.split(':')[1] == "track":
+        songCount = songCount + 1
+print(songCount)
+
+singleEpisodes = [ episode['uri'] for episode in allEpisodes[:round(songCount/2)] ]
 sp.playlist_add_items(DailyListenID, items=singleEpisodes)
