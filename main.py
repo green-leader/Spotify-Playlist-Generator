@@ -2,7 +2,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
 # list of podcast shows to filter out
-filter_show = ['spotify:show:6v1kAUP76SLtLI7ApsEgdH', 'spotify:show:0RrdRP2clWr5XCAYYA2j2A', 'spotify:show:0oYGnOWNIj93Q1CCfQ4Mj8?', 'spotify:show:2GmNzw8t4uG70rn4XG9zcC']
+filter_show = ['spotify:show:6v1kAUP76SLtLI7ApsEgdH', 'spotify:show:0RrdRP2clWr5XCAYYA2j2A', 'spotify:show:0oYGnOWNIj93Q1CCfQ4Mj8', 'spotify:show:2GmNzw8t4uG70rn4XG9zcC']
 
 with open("./.secrets") as f:
     CLIENT_SECRET = f.read().splitlines()[0]
