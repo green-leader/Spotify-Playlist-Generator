@@ -1,3 +1,4 @@
+import logging
 from  azure.core.exceptions import ResourceNotFoundError
 import json
 import sys
@@ -19,10 +20,10 @@ class AzureKeyVaultCacheHandler(spotipy.cache_handler.CacheHandler):
     def get_cached_token(self):
         token_info = None
         try:
-            token_info_string = self.client.get_secret(self.tokenCacheName).value
+            token_info_string = str(self.client.get_secret(self.tokenCacheName).value)
             token_info = json.loads(token_info_string)
         except ResourceNotFoundError as err:
-            print("Couldn't read cache from vault", file=sys.stderr)
+            logging.error("Couldn't read cache from vault")
             exit(1)
 
         return token_info
@@ -32,8 +33,8 @@ class AzureKeyVaultCacheHandler(spotipy.cache_handler.CacheHandler):
         try:
             self.client.set_secret(
                 self.tokenCacheName,
-                token_info,
+                json.dumps(token_info),
             )
         except ResourceNotFoundError as err:
-            print("Couldn't write cache to vault", file=sys.stderr)
+            logging.error("Couldn't write cache to vault")
             exit(1)
