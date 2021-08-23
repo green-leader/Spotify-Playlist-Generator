@@ -1,18 +1,26 @@
+import os
+from azure.identity import EnvironmentCredential
+from azure.keyvault.secrets import SecretClient
+
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+from AKVCacheHandler import AzureKeyVaultCacheHandler
 
 # list of podcast shows to filter out
 filter_show = ['spotify:show:6v1kAUP76SLtLI7ApsEgdH', 'spotify:show:0RrdRP2clWr5XCAYYA2j2A', 'spotify:show:0oYGnOWNIj93Q1CCfQ4Mj8', 'spotify:show:2GmNzw8t4uG70rn4XG9zcC']
 
-with open("./.secrets") as f:
-    CLIENT_SECRET = f.read().splitlines()[0]
+VAULT_URL = os.environ["VAULT_URL"]
+
+credential = EnvironmentCredential()
+client = SecretClient(vault_url=VAULT_URL, credential=credential)
 
 SCOPE = "playlist-modify-public,playlist-modify-private,playlist-read-private,user-library-read,user-read-playback-position"
 
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="91ed165161494fffae34d89d02619204",
-                                               client_secret=CLIENT_SECRET,
+                                               client_secret=client.get_secret("SpotifyClientSecret").value,
                                                redirect_uri="http://localhost/callback",
-                                               scope=SCOPE))
+                                               scope=SCOPE,
+                                               cache_handler=AzureKeyVaultCacheHandler()))
 
 def get_playlist(field, search):
     '''Search through all of the playlists, and return the first uri that matches by field'''
