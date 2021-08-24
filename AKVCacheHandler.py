@@ -20,7 +20,7 @@ class AzureKeyVaultCacheHandler(spotipy.cache_handler.CacheHandler):
     def get_cached_token(self):
         token_info = None
         try:
-            token_info_string = str(self.client.get_secret(self.tokenCacheName).value)
+            token_info_string = self.client.get_secret(self.tokenCacheName).value
             token_info = json.loads(token_info_string)
         except ResourceNotFoundError as err:
             logging.error("Couldn't read cache from vault")
