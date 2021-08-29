@@ -58,8 +58,9 @@ def create_playlist(name, description=''):
     PlaylistID = get_playlist('name', 'Daily Listen')
 
     playlistContents = sp.playlist_items(PlaylistID, fields='items(track(uri)),next')
+
     while playlistContents:
-        itemsplaylistContents = [ trackPlaylistContents['track']['uri'] for trackPlaylistContents in playlistContents['items'] ]
+        itemsplaylistContents = [ trackPlaylistContents['track']['uri'] for trackPlaylistContents in playlistContents['items'] if trackPlaylistContents['track'] is not None ]
         sp.playlist_remove_all_occurrences_of_items(PlaylistID, items=itemsplaylistContents)
         if playlistContents['next']:
             playlistContents = sp.next(playlistContents)
@@ -73,7 +74,7 @@ def playlistTemplate(templateName):
     templatePlaylistID = get_playlist('name', templateName)
 
     fields='items(track(uri)),next' # Next permits pagination
-    newPlaylist = [ playlistItem['track']['uri'] for playlistItem in sp.playlist_items(templatePlaylistID, fields=fields)['items'] ]
+    newPlaylist = [ playlistItem['track']['uri'] for playlistItem in sp.playlist_items(templatePlaylistID, fields=fields)['items'] if playlistItem['track'] is not None]
 
     # Cull out blacklisted shows
     newPlaylist = cullBlacklist(newPlaylist, filter_show)
