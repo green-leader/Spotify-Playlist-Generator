@@ -55,7 +55,7 @@ def create_playlist(name, description=''):
     if not get_playlist('name', name):
         sp.user_playlist_create(sp.me()['id'], name, public=False, description=description)
 
-    PlaylistID = get_playlist('name', 'Daily Listen')
+    PlaylistID = get_playlist('name', name)
 
     playlistContents = sp.playlist_items(PlaylistID, fields='items(track(uri)),next')
 
@@ -124,8 +124,8 @@ def PodcastEpisodeListing():
     allEpisodes = sorted(allEpisodes, key=lambda episode: episode['release_date'], reverse=True)
     return allEpisodes
 
-def mainBuild():
-    DailyListenID = create_playlist(name='Daily Listen', description='Playlist for the day')
+def mainBuild(plName, plDescription=''):
+    DailyListenID = create_playlist(name=plName, description=plDescription)
     newPlaylist = playlistTemplate(templateName='Daily Drive')
     allEpisodes = PodcastEpisodeListing()
 
@@ -157,4 +157,4 @@ def mainBuild():
 
 
 if __name__ == "__main__":
-    mainBuild()
+    mainBuild(plName="Daily Listen - Staging")

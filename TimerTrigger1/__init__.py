@@ -15,4 +15,4 @@ def main(mytimer: func.TimerRequest) -> None:
 
     logging.info('Python timer trigger function ran at %s', utc_timestamp)
 
-    build.mainBuild()
+    build.mainBuild(plName="Daily Listen", plDescription="Playlist for the day")
