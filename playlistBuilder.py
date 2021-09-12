@@ -151,8 +151,10 @@ def removeTracks(tracks, exclude=None):
             noDupes[track['uri']] = track
 
     newTracks = [track for track in noDupes.values()]
-    recommendations = sp.recommendations(seed_tracks=[track['id'] for track in tracks[:5]], limit=(len(tracks) - len(newTracks)))
-    newTracks.extend(recommendations['tracks'])
+    trackRecommendCount = len(tracks) - len(newTracks)
+    if trackRecommendCount:
+        recommendations = sp.recommendations(seed_tracks=[track['id'] for track in tracks[:5]], limit=(trackRecommendCount))
+        newTracks.extend(recommendations['tracks'])
     return newTracks
 
 def mainBuild(plName, plDescription=''):
