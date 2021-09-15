@@ -41,9 +41,15 @@ def cullShows(items, filterList):
     Remove podcast shows we don't care for
     '''
     itemEpisodes = [ show['uri'] for show in items if show['uri'].split(':')[1] == 'episode' ]
-    episodeLookup = [ episode['uri'] for episode in sp.episodes(itemEpisodes)['episodes'] ]
+    episodeLookup = [ episode for episode in sp.episodes(itemEpisodes)['episodes'] ]
 
-    return [x for x in items if x['uri'] not in episodeLookup ]
+    result = list() # [x for x in items if x['uri'] not in episodeLookup ]
+    # x['show']['uri']
+    for x in episodeLookup:
+        if x['show']['uri'] not in filterList:
+            result.append(x)
+
+    return result
 
 
 # Create playlist
