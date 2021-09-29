@@ -130,6 +130,7 @@ def removeTracks(tracks, exclude=None):
     '''
     Remove duplicates and recently played
     Exclude is an optional argument wherein you can specify an existing playlist to use it's contents as a base to remove.
+    Explicity Remove Spotify as an artist. 
     '''
 
     # Get recently played
@@ -153,7 +154,7 @@ def removeTracks(tracks, exclude=None):
 
     noDupes = dict()
     for track in tracks:
-        if track['uri'] not in recentPlayedURI:
+        if track['uri'] not in recentPlayedURI and track['artists'][0]['uri'] != 'spotify:artist:5UUG83KSlqPhrBssrducWV':
             noDupes[track['uri']] = track
 
     newTracks = [track for track in noDupes.values()]
