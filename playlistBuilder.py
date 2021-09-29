@@ -7,7 +7,7 @@ from spotipy.oauth2 import SpotifyOAuth
 from AKVCacheHandler import AzureKeyVaultCacheHandler
 
 # list of podcast shows to filter out
-filter_show = ['spotify:show:6v1kAUP76SLtLI7ApsEgdH', 'spotify:show:0RrdRP2clWr5XCAYYA2j2A', 'spotify:show:0oYGnOWNIj93Q1CCfQ4Mj8', 'spotify:show:2GmNzw8t4uG70rn4XG9zcC']
+filter_show = ['spotify:show:6v1kAUP76SLtLI7ApsEgdH', 'spotify:show:0RrdRP2clWr5XCAYYA2j2A', 'spotify:show:0oYGnOWNIj93Q1CCfQ4Mj8', 'spotify:show:2GmNzw8t4uG70rn4XG9zcC', 'spotify:show:3yxUnWt3TJWXaKuRU2sLOg']
 
 VAULT_URL = os.environ["VAULT_URL"]
 
