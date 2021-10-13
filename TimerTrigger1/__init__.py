@@ -3,7 +3,7 @@ import logging
 
 import azure.functions as func
 
-import playlistBuilder as build
+import playlistbuilder as build
 
 
 def main(mytimer: func.TimerRequest) -> None:
@@ -15,4 +15,4 @@ def main(mytimer: func.TimerRequest) -> None:
 
     logging.info('Python timer trigger function ran at %s', utc_timestamp)
 
-    build.mainBuild(plName="Daily Listen", plDescription="Playlist for the day")
+    build.main_build(plname="Daily Listen", pldescription="Playlist for the day")
