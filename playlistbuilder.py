@@ -190,6 +190,16 @@ def main_build(plname, pldescription=''):
     episodes = cull_shows(episodes, filter_show)
     allepisodes = podcast_episode_listing()
 
+    allepisodesdict = dict()
+
+    for entry in allepisodes:
+        allepisodesdict[entry['uri']] = entry
+    
+    for entry in episodes.copy():
+        if entry['uri'] in allepisodesdict.keys():
+            episodes.remove(entry)
+        allepisodesdict[entry['uri']] = entry
+    
     for episode in episodes:
         allepisodes.insert(0, episode)
 
