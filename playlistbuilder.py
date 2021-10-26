@@ -28,6 +28,15 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="91ed165161494fffae34d8
         scope=SCOPE, \
         cache_handler=AzureKeyVaultCacheHandler()))
 
+def _is_played(episode, timevar = 120000):
+    '''Check if an episode is marked as played or
+        if playtime remaining is less than designated minutes.
+    '''
+    if not episode['resume_point']['fully_played'] and \
+        (episode['duration_ms'] - episode['resume_point']['resume_position_ms']) <= timevar:
+        return True
+    return episode['resume_point']['fully_played']
+
 def get_playlist(field, search):
     '''Search through all of the playlists, and return the first uri that matches by field'''
     playlists = sp.current_user_playlists()
@@ -85,8 +94,9 @@ def playlist_template(templatename):
     for item in newplaylist:
         if item['uri'].split(':')[1] == 'track':
             tracks.append(item)
-        else:
-            episodes.append(item)
+        elif item['uri'].split(':')[1] == 'episode':
+            if not _is_played(item):
+                episodes.append(item)
 
 
     return tracks, episodes
@@ -113,8 +123,7 @@ def podcast_episode_listing():
                 # Use pagination to grab batches of 50 and dump the episodes we've heard before.
                 # Don't move on until we have 50 from each show.
                 tempepisodes = [ episode for episode in \
-                    showepisodes['items'] if not episode['resume_point']['fully_played'] and \
-                    (episode['duration_ms'] - episode['resume_point']['resume_position_ms']) >= 120000 ] # pylint: disable=line-too-long
+                    showepisodes['items'] if not _is_played ]
 
                 if len(tempepisodes) < 50:
                     episodelisting.extend(tempepisodes)
@@ -194,12 +203,12 @@ def main_build(plname, pldescription=''):
 
     for entry in allepisodes:
         allepisodesdict[entry['uri']] = entry
-    
+
     for entry in episodes.copy():
         if entry['uri'] in allepisodesdict.keys():
             episodes.remove(entry)
         allepisodesdict[entry['uri']] = entry
-    
+
     for episode in episodes:
         allepisodes.insert(0, episode)
 
