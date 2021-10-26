@@ -22,11 +22,15 @@ client = SecretClient(vault_url=VAULT_URL, credential=credential)
 SCOPE = "playlist-modify-public, playlist-modify-private, playlist-read-private, \
     user-library-read, user-read-playback-position, user-read-recently-played"
 
+# Occasionally times out during function, quick search lead to a stackoverflow post
+# suggesting to increase the timeout and retry count.
+# ref: https://stackoverflow.com/questions/64815194/spotify-python-api-call-timeout-issues/66770782#66770782
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="91ed165161494fffae34d89d02619204", \
         client_secret=client.get_secret("SpotifyClientSecret").value, \
         redirect_uri="http://localhost/callback", \
         scope=SCOPE, \
-        cache_handler=AzureKeyVaultCacheHandler()))
+        cache_handler=AzureKeyVaultCacheHandler()), \
+        requests_timeout=10, retries=10)
 
 def _is_played(episode, timevar = 120000):
     '''Check if an episode is marked as played or
