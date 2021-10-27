@@ -127,7 +127,7 @@ def podcast_episode_listing():
                 # Use pagination to grab batches of 50 and dump the episodes we've heard before.
                 # Don't move on until we have 50 from each show.
                 tempepisodes = [ episode for episode in \
-                    showepisodes['items'] if not _is_played ]
+                    showepisodes['items'] if not _is_played(episode) ]
 
                 if len(tempepisodes) < 50:
                     episodelisting.extend(tempepisodes)
