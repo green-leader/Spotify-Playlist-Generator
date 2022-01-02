@@ -14,220 +14,243 @@ filter_show = ['spotify:show:6v1kAUP76SLtLI7ApsEgdH', 'spotify:show:0RrdRP2clWr5
         'spotify:show:0oYGnOWNIj93Q1CCfQ4Mj8', 'spotify:show:2GmNzw8t4uG70rn4XG9zcC', \
         'spotify:show:3yxUnWt3TJWXaKuRU2sLOg']
 
-VAULT_URL = os.environ["VAULT_URL"]
-
-credential = EnvironmentCredential()
-client = SecretClient(vault_url=VAULT_URL, credential=credential)
-
-SCOPE = "playlist-modify-public, playlist-modify-private, playlist-read-private, \
-    user-library-read, user-read-playback-position, user-read-recently-played"
-
-# Occasionally times out during function, quick search lead to a stackoverflow post
-# suggesting to increase the timeout and retry count.
-# ref: https://stackoverflow.com/questions/64815194/spotify-python-api-call-timeout-issues/66770782#66770782
-sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="91ed165161494fffae34d89d02619204", \
-        client_secret=client.get_secret("SpotifyClientSecret").value, \
-        redirect_uri="http://localhost/callback", \
-        scope=SCOPE, \
-        cache_handler=AzureKeyVaultCacheHandler()), \
-        requests_timeout=10, retries=10)
+# if __name__ == "__main__":
+#     main_build(plname="Daily Listen - Staging")
 
 def _is_played(episode, timevar = 120000):
-    '''Check if an episode is marked as played or
-        if playtime remaining is less than designated minutes.
+    '''
+    Check if an episode is marked as played or
+    if playtime remaining is less than designated minutes.
     '''
     if not episode['resume_point']['fully_played'] and \
         (episode['duration_ms'] - episode['resume_point']['resume_position_ms']) <= timevar:
         return True
     return episode['resume_point']['fully_played']
 
-def get_playlist(field, search):
-    '''Search through all of the playlists, and return the first uri that matches by field'''
-    playlists = sp.current_user_playlists()
-    while playlists:
-        for playlist in playlists['items']:
-            if playlist[field] == search:
-                return playlist['uri']
-        if playlists['next']:
-            playlists = sp.next(playlists)
-        else:
-            playlists = None
-    return None
 
-
-def cull_shows(items, filterlist):
+class PlaylistGenerator:
     '''
-    Remove podcast shows we don't care for
+    Create spotipy object and manage all the work needing to be done
     '''
-    itemepisodes = [ show['uri'] for show in items if show['uri'].split(':')[1] == 'episode' ]
-    episodelookup = list(sp.episodes(itemepisodes)['episodes'])
+    def __init__(self,):
+        vault_url = os.environ["VAULT_URL"]
 
-    result = list()
-    for item in episodelookup:
-        if item['show']['uri'] not in filterlist:
-            result.append(item)
+        credential = EnvironmentCredential()
+        client = SecretClient(vault_url=vault_url, credential=credential)
 
-    return result
+        scope = "playlist-modify-public, playlist-modify-private, playlist-read-private, \
+            user-library-read, user-read-playback-position, user-read-recently-played"
 
+        # Occasionally times out during function, quick search lead to a stackoverflow post
+        # suggesting to increase the timeout and retry count.
+        # ref: https://stackoverflow.com/questions/64815194/spotify-python-api-call-timeout-issues/66770782#66770782  # pylint: disable=line-too-long
+        self.spotipy = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="91ed165161494fffae34d89d02619204", \
+                client_secret=client.get_secret("SpotifyClientSecret").value, \
+                redirect_uri="http://localhost/callback", \
+                scope=scope, \
+                cache_handler=AzureKeyVaultCacheHandler()), \
+                requests_timeout=10, retries=10)
 
-# Create playlist
-def create_playlist(name, description=''):
-    '''
-    Create a playlist and return the playlistID.
-    If the playlist already exists clean out the contents.
-    '''
-    playlistid = get_playlist('name', name)
-    if not playlistid:
-        sp.user_playlist_create(sp.me()['id'], name, public=False, description=description)
+    def print_user_playlists(self,):
+        '''
+        Print out the playlists currently belonging to the user, largely a diagnostic function.
+        '''
+        playlists = self.spotipy.current_user_playlists()
+        while playlists:
+            for i, playlist in enumerate(playlists['items']):
+                print("%4d %s %s" % \
+                    (i + 1 + playlists['offset'], playlist['uri'],  playlist['name']))
+            if playlists['next']:
+                playlists = self.spotipy.next(playlists)
+            else:
+                playlists = None
 
-    return playlistid
-
-
-def playlist_template(templatename):
-    '''
-    Use existing playlist as an initial seed for the new playlist
-    '''
-    templateplaylistid = get_playlist('name', templatename)
-
-    fields='items(track),next' # Next permits pagination
-    newplaylist = [ playlistitem['track'] for playlistitem in \
-        sp.playlist_items(templateplaylistid, fields=fields)['items'] \
-            if playlistitem['track'] is not None]
-    tracks = list()
-    episodes = list()
-    for item in newplaylist:
-        if item['uri'].split(':')[1] == 'track':
-            tracks.append(item)
-        elif item['uri'].split(':')[1] == 'episode':
-            if not _is_played(item):
-                episodes.append(item)
-
-
-    return tracks, episodes
-
-
-def podcast_episode_listing():
-    '''
-    Retrieve a few episodes from all of the shows the user follows.
-    Return in descending order of release. (Newest first)
-    '''
-    allepisodes = list()
-
-    savedshows = sp.current_user_saved_shows()
-    while savedshows:
-        itemssavedshows = [ showsavedshows['show']['uri'] for \
-            showsavedshows in savedshows['items'] ]
-
-        for itemsavedshow in itemssavedshows:
-
-            showepisodes = sp.show_episodes(itemsavedshow)
-            episodelisting = list()
-            while showepisodes:
-
-                # Use pagination to grab batches of 50 and dump the episodes we've heard before.
-                # Don't move on until we have 50 from each show.
-                tempepisodes = [ episode for episode in \
-                    showepisodes['items'] if not _is_played(episode) ]
-
-                if len(tempepisodes) < 50:
-                    episodelisting.extend(tempepisodes)
-                    tempepisodes = None
-                else:
-                    break
-
-                if showepisodes['next']:
-                    showepisodes = sp.next(showepisodes)
-                else:
-                    showepisodes = None
-            allepisodes.extend(episodelisting)
-
-        if savedshows['next']:
-            savedshows = sp.next(savedshows)
-        else:
-            savedshows = None
-
-    # sorted works on any iterable
-    # reverse for descending order of date.
-    allepisodes = sorted(allepisodes, key=lambda episode: episode['release_date'], reverse=True)
-    return allepisodes
+    def get_playlist(self, field, search):
+        '''
+        Search through all of the playlists, and return the first uri that matches by field
+        '''
+        playlists = self.spotipy.current_user_playlists()
+        while playlists:
+            for playlist in playlists['items']:
+                if playlist[field] == search:
+                    return playlist['uri']
+            if playlists['next']:
+                playlists = self.spotipy.next(playlists)
+            else:
+                playlists = None
+        return None
 
 
-def remove_tracks(tracks, exclude=None):
-    '''
-    Remove duplicates and recently played
-    Optionally provide a playlist to remove the contents of
-    Explicity remove Spotify as an artist.
-    '''
+    def cull_shows(self, items, filterlist):
+        '''
+        Remove podcast shows we don't care for
+        '''
+        itemepisodes = [ show['uri'] for show in items if show['uri'].split(':')[1] == 'episode' ]
+        episodelookup = list(self.spotipy.episodes(itemepisodes)['episodes'])
 
-    # Get recently played
-    # it would be nice to have 100 but it looks like the endpoint only supports 50
-    recentplayed = sp.current_user_recently_played()
-    recentplayeduri = list()
-    while recentplayed:
-        recentplayeduri.extend([recent['track']['uri'] for recent in recentplayed['items']])
-        if len(recentplayeduri) < 50 and recentplayed['next']:
-            recentplayed = sp.next(recentplayed)
-        else:
-            recentplayed = None
+        result = list()
+        for item in episodelookup:
+            if item['show']['uri'] not in filterlist:
+                result.append(item)
 
-    if exclude is not None:
-        excludelist = exclude['items']
-        for recent in excludelist:
-            if recent['track'] is None:
-                continue
-            if recent['track']['uri'].split(':')[1] == 'track':
-                recentplayeduri.append(recent['track']['uri'])
+        return result
 
-    nodupes = dict()
-    for track in tracks:
-        if track['uri'] not in recentplayeduri and track['artists'][0]['uri'] != \
-            'spotify:artist:5UUG83KSlqPhrBssrducWV':
-            nodupes[track['uri']] = track
+    def create_playlist(self, name, description=''):
+        '''
+        Create a playlist and return the playlistID.
+        If the playlist already exists return the ID.
+        '''
+        playlistid = self.get_playlist('name', name)
+        if not playlistid:
+            self.spotipy.user_playlist_create(\
+                self.spotipy.me()['id'], name, public=False, description=description)
 
-    newtracks = list(nodupes.values())
-    trackrecommendcount = len(tracks) - len(newtracks)
-    if trackrecommendcount:
-        recommendations = sp.recommendations(\
-            seed_tracks=[track['id'] for track in tracks[:5]], limit=(trackrecommendcount))
-        newtracks.extend(recommendations['tracks'])
-    return newtracks
+        return playlistid
 
-def main_build(plname, pldescription=''):
-    '''
-    Entrypoint to actually build and push the playlist
-    '''
-    dailylistenid = create_playlist(name=plname, description=pldescription)
-    tracks, episodes = playlist_template(templatename='Daily Drive')
-    tracks = remove_tracks(tracks, exclude=sp.playlist_items(dailylistenid))
-    # Cull out blacklisted shows
-    episodes = cull_shows(episodes, filter_show)
-    allepisodes = podcast_episode_listing()
+    def playlist_template(self, templatename):
+        '''
+        Use existing playlist as an initial seed for the new playlist
+        '''
+        templateplaylistid = self.get_playlist('name', templatename)
 
-    allepisodesdict = dict()
+        fields='items(track),next' # Next permits pagination
+        newplaylist = [ playlistitem['track'] for playlistitem in \
+            self.spotipy.playlist_items(templateplaylistid, fields=fields)['items'] \
+                if playlistitem['track'] is not None]
+        tracks = list()
+        episodes = list()
+        for item in newplaylist:
+            if item['uri'].split(':')[1] == 'track':
+                tracks.append(item)
+            elif item['uri'].split(':')[1] == 'episode':
+                if not _is_played(item):
+                    episodes.append(item)
 
-    for entry in allepisodes:
-        allepisodesdict[entry['uri']] = entry
+        return tracks, episodes
 
-    for entry in episodes.copy():
-        if entry['uri'] in allepisodesdict.keys():
-            episodes.remove(entry)
-        allepisodesdict[entry['uri']] = entry
+    def podcast_episode_listing(self, epcount=50):
+        '''
+        Retrieve a few episodes from all of the shows the user follows.
+        Return in descending order of release. (Newest first)
+        keyword arguments:
+        epcount -- the number of unplayed episodes to retrieve from each show
+        '''
+        allepisodes = list()
 
-    for episode in episodes:
-        allepisodes.insert(0, episode)
+        savedshows = self.spotipy.current_user_saved_shows()
+        while savedshows:
+            itemssavedshows = [ showsavedshows['show']['uri'] for \
+                showsavedshows in savedshows['items'] ]
 
-    sortedplaylist = list()
+            for itemsavedshow in itemssavedshows:
 
-    while len(tracks) > 0:
-        sortedplaylist.append(allepisodes.pop(0)['uri'])
-        sortedplaylist.append(tracks.pop(0)['uri'])
-        try:
+                showepisodes = self.spotipy.show_episodes(itemsavedshow)
+                episodelisting = list()
+                while showepisodes:
+
+                    # Use pagination to grab batches and drop the episodes we've heard before.
+                    # Don't move on until we have at least epcount from each show.
+                    tempepisodes = [ episode for episode in \
+                        showepisodes['items'] if not _is_played(episode) ]
+
+                    if len(tempepisodes) < epcount:
+                        episodelisting.extend(tempepisodes)
+                        tempepisodes = None
+                    else:
+                        break
+
+                    if showepisodes['next']:
+                        showepisodes = self.spotipy.next(showepisodes)
+                    else:
+                        showepisodes = None
+                allepisodes.extend(episodelisting)
+
+            if savedshows['next']:
+                savedshows = self.spotipy.next(savedshows)
+            else:
+                savedshows = None
+
+        # sorted works on any iterable
+        # reverse for descending order of date.
+        allepisodes = sorted(allepisodes, key=lambda episode: episode['release_date'], reverse=True)
+        return allepisodes
+
+    def remove_tracks(self, tracks, exclude=None):
+        '''
+        Remove duplicates and recently played
+        Optionally provide a playlist to remove the contents of
+        Explicity remove Spotify as an artist.
+        '''
+
+        # Get recently played
+        # it would be nice to have 100 but it looks like the endpoint only supports 50
+        recentplayed = self.spotipy.current_user_recently_played()
+        recentplayeduri = list()
+        while recentplayed:
+            recentplayeduri.extend([recent['track']['uri'] for recent in recentplayed['items']])
+            if len(recentplayeduri) < 50 and recentplayed['next']:
+                recentplayed = self.spotipy.next(recentplayed)
+            else:
+                recentplayed = None
+
+        if exclude is not None:
+            excludelist = exclude['items']
+            for recent in excludelist:
+                if recent['track'] is None:
+                    continue
+                if recent['track']['uri'].split(':')[1] == 'track':
+                    recentplayeduri.append(recent['track']['uri'])
+
+        nodupes = dict()
+        for track in tracks:
+            if track['uri'] not in recentplayeduri and track['artists'][0]['uri'] != \
+                'spotify:artist:5UUG83KSlqPhrBssrducWV':
+                nodupes[track['uri']] = track
+
+        newtracks = list(nodupes.values())
+        trackrecommendcount = len(tracks) - len(newtracks)
+        if trackrecommendcount:
+            recommendations = self.spotipy.recommendations(\
+                seed_tracks=[track['id'] for track in tracks[:5]], limit=(trackrecommendcount))
+            newtracks.extend(recommendations['tracks'])
+        return newtracks
+
+    def main_build(self, plname, pldescription=''):
+        '''
+        Entrypoint to actually build and push the playlist
+        '''
+        dailylistenid = self.create_playlist(name=plname, description=pldescription)
+        tracks, episodes = self.playlist_template(templatename='Daily Drive')
+        tracks = self.remove_tracks(tracks, exclude=self.spotipy.playlist_items(dailylistenid))
+        # Cull out blacklisted shows
+        episodes = self.cull_shows(episodes, filter_show)
+        allepisodes = self.podcast_episode_listing()
+
+        allepisodesdict = dict()
+
+        for entry in allepisodes:
+            allepisodesdict[entry['uri']] = entry
+
+        for entry in episodes.copy():
+            if entry['uri'] in allepisodesdict.keys():
+                episodes.remove(entry)
+            allepisodesdict[entry['uri']] = entry
+
+        for episode in episodes:
+            allepisodes.insert(0, episode)
+
+        sortedplaylist = list()
+
+        while len(tracks) > 0:
+            sortedplaylist.append(allepisodes.pop(0)['uri'])
             sortedplaylist.append(tracks.pop(0)['uri'])
-        except IndexError:
-            pass
+            try:
+                sortedplaylist.append(tracks.pop(0)['uri'])
+            except IndexError:
+                pass
 
-    sp.user_playlist_replace_tracks(sp.me()['id'], dailylistenid, tracks=sortedplaylist)
-
+        self.spotipy.user_playlist_replace_tracks(self.spotipy.me()['id'], dailylistenid, tracks=sortedplaylist)
 
 if __name__ == "__main__":
-    main_build(plname="Daily Listen - Staging")
+    build = PlaylistGenerator()
+    build.main_build(plname="Daily Listen - Staging")
