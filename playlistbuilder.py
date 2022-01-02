@@ -128,7 +128,7 @@ class PlaylistGenerator:
 
         return tracks, episodes
 
-    def podcast_episode_listing(self, epcount=50):
+    def podcast_episode_listing(self, epcount=10):
         '''
         Retrieve a few episodes from all of the shows the user follows.
         Return in descending order of release. (Newest first)
@@ -137,38 +137,35 @@ class PlaylistGenerator:
         '''
         allepisodes = list()
 
+        savedshowListing = list()
         savedshows = self.spotipy.current_user_saved_shows()
+        # we need to paginate this to make sure all saved shows are grabbed
         while savedshows:
-            itemssavedshows = [ showsavedshows['show']['uri'] for \
-                showsavedshows in savedshows['items'] ]
-
-            for itemsavedshow in itemssavedshows:
-
-                showepisodes = self.spotipy.show_episodes(itemsavedshow)
-                episodelisting = list()
-                while showepisodes:
-
-                    # Use pagination to grab batches and drop the episodes we've heard before.
-                    # Don't move on until we have at least epcount from each show.
-                    tempepisodes = [ episode for episode in \
-                        showepisodes['items'] if not _is_played(episode) ]
-
-                    if len(tempepisodes) < epcount:
-                        episodelisting.extend(tempepisodes)
-                        tempepisodes = None
-                    else:
-                        break
-
-                    if showepisodes['next']:
-                        showepisodes = self.spotipy.next(showepisodes)
-                    else:
-                        showepisodes = None
-                allepisodes.extend(episodelisting)
-
+            savedshowListing.extend(savedshows['items'])
             if savedshows['next']:
                 savedshows = self.spotipy.next(savedshows)
             else:
                 savedshows = None
+
+        for show in savedshowListing:
+            showepisodes = self.spotipy.show_episodes(show['show']['uri'])
+            episodelisting = list()
+            while showepisodes:
+                # Use pagination to grab batches and drop the episodes we've heard before.
+                # Don't move on until we have at least epcount from each show.
+                tempepisodes = [ episode for episode in \
+                    showepisodes['items'] if not _is_played(episode) ]
+
+                episodelisting.extend(tempepisodes)
+
+                if len(episodelisting) > epcount:
+                    break
+
+                if showepisodes['next']:
+                    showepisodes = self.spotipy.next(showepisodes)
+                else:
+                    break
+            allepisodes.extend(episodelisting)
 
         # sorted works on any iterable
         # reverse for descending order of date.
@@ -254,3 +251,7 @@ class PlaylistGenerator:
 if __name__ == "__main__":
     build = PlaylistGenerator()
     build.main_build(plname="Daily Listen - Staging")
+    # build.podcast_episode_listing(epcount=10)
+
+    # with open("fifty.json") as f:
+    #     f.write(build.podcast_episode_listing(epcount=50))
