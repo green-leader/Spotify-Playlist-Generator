@@ -3,6 +3,7 @@ Built spotify playlist and push it to the appropriate endpoint
 """
 
 import os
+import sys
 import spotipy
 from azure.identity import EnvironmentCredential
 from azure.keyvault.secrets import SecretClient
@@ -36,7 +37,7 @@ class PlaylistGenerator:
         if plname is None:
             raise AttributeError('A playlist name must be given via plname on init')
         self.plname = plname
-        
+
         vault_url = os.environ["VAULT_URL"]
 
         credential = EnvironmentCredential()
@@ -54,12 +55,14 @@ class PlaylistGenerator:
                 scope=scope, \
                 cache_handler=AzureKeyVaultCacheHandler()), \
                 requests_timeout=10, retries=10)
-    
+
     def load_config(self,):
         '''
         Check for variable in description of playlist
         '''
-        pass
+        playlist = self.spotipy.playlist(self.get_playlist('name', self.plname))
+        print(playlist['description'])
+        sys.exit(1)
 
     def print_user_playlists(self,):
         '''
@@ -147,17 +150,17 @@ class PlaylistGenerator:
         '''
         allepisodes = list()
 
-        savedshowListing = list()
+        saved_show_listing = list()
         savedshows = self.spotipy.current_user_saved_shows()
         # we need to paginate this to make sure all saved shows are grabbed
         while savedshows:
-            savedshowListing.extend(savedshows['items'])
+            saved_show_listing.extend(savedshows['items'])
             if savedshows['next']:
                 savedshows = self.spotipy.next(savedshows)
             else:
                 savedshows = None
 
-        for show in savedshowListing:
+        for show in saved_show_listing:
             showepisodes = self.spotipy.show_episodes(show['show']['uri'])
             episodelisting = list()
             while showepisodes:
@@ -256,8 +259,9 @@ class PlaylistGenerator:
             except IndexError:
                 pass
 
-        self.spotipy.user_playlist_replace_tracks(self.spotipy.me()['id'], dailylistenid, tracks=sortedplaylist)
+        self.spotipy.user_playlist_replace_tracks(\
+            self.spotipy.me()['id'], dailylistenid, tracks=sortedplaylist)
 
 if __name__ == "__main__":
     build = PlaylistGenerator(plname="Daily Listen - Staging")
-    build.main_build()
+    build.load_config()
