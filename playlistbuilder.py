@@ -2,20 +2,14 @@
 Built spotify playlist and push it to the appropriate endpoint
 """
 
+import json
 import os
+import requests
 import spotipy
 from azure.identity import EnvironmentCredential
 from azure.keyvault.secrets import SecretClient
 from spotipy.oauth2 import SpotifyOAuth
 from akv_cachehandler import AzureKeyVaultCacheHandler
-
-# list of podcast shows to filter out
-filter_show = ['spotify:show:6v1kAUP76SLtLI7ApsEgdH', 'spotify:show:0RrdRP2clWr5XCAYYA2j2A', \
-        'spotify:show:0oYGnOWNIj93Q1CCfQ4Mj8', 'spotify:show:2GmNzw8t4uG70rn4XG9zcC', \
-        'spotify:show:3yxUnWt3TJWXaKuRU2sLOg']
-
-# if __name__ == "__main__":
-#     main_build(plname="Daily Listen - Staging")
 
 def _is_played(episode, timevar = 120000):
     '''
@@ -32,7 +26,11 @@ class PlaylistGenerator:
     '''
     Create spotipy object and manage all the work needing to be done
     '''
-    def __init__(self,):
+    def __init__(self,plname=None):
+        if plname is None:
+            raise AttributeError('A playlist name must be given via plname on init')
+        self.plname = plname
+
         vault_url = os.environ["VAULT_URL"]
 
         credential = EnvironmentCredential()
@@ -50,6 +48,18 @@ class PlaylistGenerator:
                 scope=scope, \
                 cache_handler=AzureKeyVaultCacheHandler()), \
                 requests_timeout=10, retries=10)
+
+    def load_config(self,):
+        '''
+        check for a remote config spec in description, if it's there go ahead an try to load it.
+        '''
+        playlist = self.spotipy.playlist(self.get_playlist('name', self.plname))
+        descr = playlist['description']
+        remote_config = descr[descr.find("REMOTE_CONFIG=")+14:]
+        # Spotify escapes slashes, so we need to fix that
+        remote_config = remote_config.replace("&#x2F;", "/")
+        req = requests.get(remote_config)
+        self.config = json.loads(req.content)
 
     def print_user_playlists(self,):
         '''
@@ -137,17 +147,17 @@ class PlaylistGenerator:
         '''
         allepisodes = list()
 
-        savedshowListing = list()
+        saved_show_listing = list()
         savedshows = self.spotipy.current_user_saved_shows()
         # we need to paginate this to make sure all saved shows are grabbed
         while savedshows:
-            savedshowListing.extend(savedshows['items'])
+            saved_show_listing.extend(savedshows['items'])
             if savedshows['next']:
                 savedshows = self.spotipy.next(savedshows)
             else:
                 savedshows = None
 
-        for show in savedshowListing:
+        for show in saved_show_listing:
             showepisodes = self.spotipy.show_episodes(show['show']['uri'])
             episodelisting = list()
             while showepisodes:
@@ -212,15 +222,15 @@ class PlaylistGenerator:
             newtracks.extend(recommendations['tracks'])
         return newtracks
 
-    def main_build(self, plname, pldescription=''):
+    def main_build(self):
         '''
         Entrypoint to actually build and push the playlist
         '''
-        dailylistenid = self.create_playlist(name=plname, description=pldescription)
-        tracks, episodes = self.playlist_template(templatename='Daily Drive')
+        dailylistenid = self.create_playlist(name=self.plname)
+        tracks, episodes = self.playlist_template(templatename=build.config["playlist_template"])
         tracks = self.remove_tracks(tracks, exclude=self.spotipy.playlist_items(dailylistenid))
         # Cull out blacklisted shows
-        episodes = self.cull_shows(episodes, filter_show)
+        episodes = self.cull_shows(episodes, build.config["filter_show"])
         allepisodes = self.podcast_episode_listing()
 
         allepisodesdict = dict()
@@ -246,12 +256,10 @@ class PlaylistGenerator:
             except IndexError:
                 pass
 
-        self.spotipy.user_playlist_replace_tracks(self.spotipy.me()['id'], dailylistenid, tracks=sortedplaylist)
+        self.spotipy.user_playlist_replace_tracks(\
+            self.spotipy.me()['id'], dailylistenid, tracks=sortedplaylist)
 
 if __name__ == "__main__":
-    build = PlaylistGenerator()
-    build.main_build(plname="Daily Listen - Staging")
-    # build.podcast_episode_listing(epcount=10)
-
-    # with open("fifty.json") as f:
-    #     f.write(build.podcast_episode_listing(epcount=50))
+    build = PlaylistGenerator(plname="Daily Listen - Staging")
+    build.load_config()
+    build.main_build()
