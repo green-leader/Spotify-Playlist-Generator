@@ -11,3 +11,6 @@ exclude =
     *.egg
     venv
 max-line-length=127
+per-file-ignores =
+    # flake8 doesn't seem to like how the asserts are handled. 
+    tests/test_builder.py:E712
