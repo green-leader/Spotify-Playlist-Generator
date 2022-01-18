@@ -1,7 +1,8 @@
 name: Deploy Python project to function app
 
 on:
-  [push]
+  push:
+    branches: [ master ]
 
 env:
   AZURE_FUNCTIONAPP_NAME: spotifyplaylist-34-46-48-64 # set this to your application's name

@@ -10,6 +10,7 @@ from azure.core.exceptions import ResourceNotFoundError
 from azure.identity import EnvironmentCredential
 from azure.keyvault.secrets import SecretClient
 
+
 class AzureKeyVaultCacheHandler(spotipy.cache_handler.CacheHandler):
     """
     Store and retrieve the token info inside of Azure Key Vault
@@ -30,7 +31,6 @@ class AzureKeyVaultCacheHandler(spotipy.cache_handler.CacheHandler):
             sys.exit(1)
 
         return token_info
-
 
     def save_token_to_cache(self, token_info):
         try:
