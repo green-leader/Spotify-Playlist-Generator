@@ -2,21 +2,14 @@
 Built spotify playlist and push it to the appropriate endpoint
 """
 
+import json
 import os
-import sys
+import requests
 import spotipy
 from azure.identity import EnvironmentCredential
 from azure.keyvault.secrets import SecretClient
 from spotipy.oauth2 import SpotifyOAuth
 from akv_cachehandler import AzureKeyVaultCacheHandler
-
-# list of podcast shows to filter out
-filter_show = ['spotify:show:6v1kAUP76SLtLI7ApsEgdH', 'spotify:show:0RrdRP2clWr5XCAYYA2j2A', \
-        'spotify:show:0oYGnOWNIj93Q1CCfQ4Mj8', 'spotify:show:2GmNzw8t4uG70rn4XG9zcC', \
-        'spotify:show:3yxUnWt3TJWXaKuRU2sLOg']
-
-# if __name__ == "__main__":
-#     main_build(plname="Daily Listen - Staging")
 
 def _is_played(episode, timevar = 120000):
     '''
@@ -58,11 +51,15 @@ class PlaylistGenerator:
 
     def load_config(self,):
         '''
-        Check for variable in description of playlist
+        check for a remote config spec in description, if it's there go ahead an try to load it.
         '''
         playlist = self.spotipy.playlist(self.get_playlist('name', self.plname))
-        print(playlist['description'])
-        sys.exit(1)
+        descr = playlist['description']
+        remote_config = descr[descr.find("REMOTE_CONFIG=")+14:]
+        # Spotify escapes slashes, so we need to fix that
+        remote_config = remote_config.replace("&#x2F;", "/")
+        req = requests.get(remote_config)
+        self.config = json.loads(req.content)
 
     def print_user_playlists(self,):
         '''
@@ -230,10 +227,10 @@ class PlaylistGenerator:
         Entrypoint to actually build and push the playlist
         '''
         dailylistenid = self.create_playlist(name=self.plname)
-        tracks, episodes = self.playlist_template(templatename='Daily Drive')
+        tracks, episodes = self.playlist_template(templatename=build.config["playlist_template"])
         tracks = self.remove_tracks(tracks, exclude=self.spotipy.playlist_items(dailylistenid))
         # Cull out blacklisted shows
-        episodes = self.cull_shows(episodes, filter_show)
+        episodes = self.cull_shows(episodes, build.config["filter_show"])
         allepisodes = self.podcast_episode_listing()
 
         allepisodesdict = dict()
@@ -265,3 +262,4 @@ class PlaylistGenerator:
 if __name__ == "__main__":
     build = PlaylistGenerator(plname="Daily Listen - Staging")
     build.load_config()
+    build.main_build()
