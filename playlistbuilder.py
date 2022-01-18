@@ -16,7 +16,9 @@ def _is_played(episode, timevar = 120000):
     Check if an episode is marked as played or
     if playtime remaining is less than designated minutes.
     '''
-    if not episode['resume_point']['fully_played'] and \
+    if episode['duration_ms'] < timevar:
+        return episode['resume_point']['fully_played']
+    elif not episode['resume_point']['fully_played'] and \
         (episode['duration_ms'] - episode['resume_point']['resume_position_ms']) <= timevar:
         return True
     return episode['resume_point']['fully_played']
@@ -130,11 +132,11 @@ class PlaylistGenerator:
         tracks = list()
         episodes = list()
         for item in newplaylist:
-            if item['uri'].split(':')[1] == 'track':
-                tracks.append(item)
-            elif item['uri'].split(':')[1] == 'episode':
+            if item['episode']:
                 if not _is_played(item):
                     episodes.append(item)
+            else:
+                tracks.append(item)                  
 
         return tracks, episodes
 

@@ -23,6 +23,12 @@ class Test_is_played_Method(unittest.TestCase):
         episode['resume_point']['fully_played'] = False
         episode['resume_point']['resume_position_ms'] = episode['duration_ms'] - 60000
         assert _is_played(episode) == True
+    
+    def test_is_played_short_episode(self,):
+        episode = sampleepisode.copy()
+        episode['resume_point']['fully_played'] = False
+        episode['duration_ms'] = 59999
+        assert _is_played(episode) == False
 
 
 class TestInitMethod(unittest.TestCase):
