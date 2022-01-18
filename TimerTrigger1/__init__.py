@@ -15,5 +15,5 @@ def main(mytimer: func.TimerRequest) -> None:
 
     logging.info('Python timer trigger function ran at %s', utc_timestamp)
 
-    build = PlaylistGenerator()
-    build.main_build(plname="Daily Listen", pldescription="Playlist for the day")
+    build = PlaylistGenerator(plname="Daily Listen - Staging")
+    build.main_build()

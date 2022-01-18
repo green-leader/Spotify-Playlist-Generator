@@ -32,7 +32,11 @@ class PlaylistGenerator:
     '''
     Create spotipy object and manage all the work needing to be done
     '''
-    def __init__(self,):
+    def __init__(self,plname=None):
+        if plname is None:
+            raise AttributeError('A playlist name must be given via plname on init')
+        self.plname = plname
+        
         vault_url = os.environ["VAULT_URL"]
 
         credential = EnvironmentCredential()
@@ -50,6 +54,12 @@ class PlaylistGenerator:
                 scope=scope, \
                 cache_handler=AzureKeyVaultCacheHandler()), \
                 requests_timeout=10, retries=10)
+    
+    def load_config(self,):
+        '''
+        Check for variable in description of playlist
+        '''
+        pass
 
     def print_user_playlists(self,):
         '''
@@ -212,11 +222,11 @@ class PlaylistGenerator:
             newtracks.extend(recommendations['tracks'])
         return newtracks
 
-    def main_build(self, plname, pldescription=''):
+    def main_build(self):
         '''
         Entrypoint to actually build and push the playlist
         '''
-        dailylistenid = self.create_playlist(name=plname, description=pldescription)
+        dailylistenid = self.create_playlist(name=self.plname)
         tracks, episodes = self.playlist_template(templatename='Daily Drive')
         tracks = self.remove_tracks(tracks, exclude=self.spotipy.playlist_items(dailylistenid))
         # Cull out blacklisted shows
@@ -249,9 +259,5 @@ class PlaylistGenerator:
         self.spotipy.user_playlist_replace_tracks(self.spotipy.me()['id'], dailylistenid, tracks=sortedplaylist)
 
 if __name__ == "__main__":
-    build = PlaylistGenerator()
-    build.main_build(plname="Daily Listen - Staging")
-    # build.podcast_episode_listing(epcount=10)
-
-    # with open("fifty.json") as f:
-    #     f.write(build.podcast_episode_listing(epcount=50))
+    build = PlaylistGenerator(plname="Daily Listen - Staging")
+    build.main_build()
