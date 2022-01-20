@@ -3,6 +3,7 @@ Built spotify playlist and push it to the appropriate endpoint
 """
 
 import json
+import logging
 import os
 import requests
 import spotipy
@@ -57,10 +58,10 @@ class PlaylistGenerator:
         check for a remote config spec in description, if it's there go ahead an try to load it.
         '''
         playlist = self.spotipy.playlist(self.get_playlist('name', self.plname))
-        descr = playlist['description']
-        remote_config = descr[descr.find("REMOTE_CONFIG=")+14:]
         # Spotify escapes slashes, so we need to fix that
+        remote_config = str(playlist['description']).replace("REMOTE_CONFIG=", "")
         remote_config = remote_config.replace("&#x2F;", "/")
+        logging.info(remote_config)
         req = requests.get(remote_config)
         self.config = json.loads(req.content)
 
@@ -215,10 +216,10 @@ class PlaylistGenerator:
         Entrypoint to actually build and push the playlist
         '''
         dailylistenid = self.create_playlist(name=self.plname)
-        tracks, episodes = self.playlist_template(templatename=build.config["playlist_template"])
+        tracks, episodes = self.playlist_template(templatename=self.config["playlist_template"])
         tracks = self.remove_tracks(tracks, exclude=self.spotipy.playlist_items(dailylistenid))
         # Cull out blacklisted shows
-        episodes = self.cull_shows(episodes, build.config["filter_show"])
+        episodes = self.cull_shows(episodes, self.config["filter_show"])
         allepisodes = self.podcast_episode_listing()
 
         allepisodesdict = dict()
