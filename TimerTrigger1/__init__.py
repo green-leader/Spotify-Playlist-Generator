@@ -3,7 +3,7 @@ import logging
 
 import azure.functions as func
 
-from playlistbuilder import PlaylistGenerator
+from playlistbuilder.playlistbuilder import PlaylistGenerator
 
 
 def main(mytimer: func.TimerRequest) -> None:
