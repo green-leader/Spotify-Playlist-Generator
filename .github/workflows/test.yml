@@ -29,7 +29,7 @@ jobs:
     - name: black
       run: |
         # should already come in blackend, just checking
-        black --check
+        black --check .
     - name: Test with nose
       run: |
         nosetests
