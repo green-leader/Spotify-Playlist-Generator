@@ -10,7 +10,10 @@ exclude =
     .eggs
     *.egg
     venv
-max-line-length=127
+# E203 whitespace before ':'
+# E501 (^) 	line too long (82 > 79 characters)
+# Added E501 because flake8 was largely flagging comments after starting to use black code formatter
+extend-ignore = E203, E501
 per-file-ignores =
     # flake8 doesn't seem to like how the asserts are handled. 
     tests/test_builder.py:E712

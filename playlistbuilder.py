@@ -49,7 +49,7 @@ class PlaylistGenerator:
 
         # Occasionally times out during function, quick search lead to a stackoverflow post
         # suggesting to increase the timeout and retry count.
-        # ref: https://stackoverflow.com/questions/64815194/spotify-python-api-call-timeout-issues/66770782#66770782  # noqa: E501
+        # ref: https://stackoverflow.com/questions/64815194/spotify-python-api-call-timeout-issues/66770782#66770782
         self.spotipy = spotipy.Spotify(
             auth_manager=SpotifyOAuth(
                 client_id="91ed165161494fffae34d89d02619204",
