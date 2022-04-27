@@ -15,6 +15,7 @@ class AzureKeyVaultCacheHandler(spotipy.cache_handler.CacheHandler):
     """
     Store and retrieve the token info inside of Azure Key Vault
     """
+
     def __init__(self, tokencachename="SpotipyTokenCache"):
         self.tokencachename = tokencachename
         vault_url = os.environ["VAULT_URL"]
