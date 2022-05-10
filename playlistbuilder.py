@@ -7,7 +7,7 @@ import logging
 import os
 import requests
 import spotipy
-from azure.identity import EnvironmentCredential
+from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from spotipy.oauth2 import SpotifyOAuth
 from akv_cachehandler import AzureKeyVaultCacheHandler
@@ -37,7 +37,7 @@ class PlaylistGenerator:
 
         vault_url = os.environ["VAULT_URL"]
 
-        credential = EnvironmentCredential()
+        credential = DefaultAzureCredential()
         client = SecretClient(vault_url=vault_url, credential=credential)
 
         scope = "playlist-modify-public, playlist-modify-private, playlist-read-private, \
