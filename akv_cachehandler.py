@@ -7,7 +7,7 @@ import sys
 import os
 import spotipy
 from azure.core.exceptions import ResourceNotFoundError
-from azure.identity import EnvironmentCredential
+from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 
 
@@ -19,7 +19,7 @@ class AzureKeyVaultCacheHandler(spotipy.cache_handler.CacheHandler):
     def __init__(self, tokencachename="SpotipyTokenCache"):
         self.tokencachename = tokencachename
         vault_url = os.environ["VAULT_URL"]
-        self.credential = EnvironmentCredential()
+        self.credential = DefaultAzureCredential()
         self.client = SecretClient(vault_url=vault_url, credential=self.credential)
 
     def get_cached_token(self):

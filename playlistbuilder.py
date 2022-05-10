@@ -7,6 +7,7 @@ import logging
 import os
 import requests
 import spotipy
+from azure.identity import DefaultAzureCredential
 from azure.identity import EnvironmentCredential
 from azure.keyvault.secrets import SecretClient
 from spotipy.oauth2 import SpotifyOAuth
