@@ -98,7 +98,7 @@ class PlaylistGenerator:
         ]
         episodelookup = list(self.spotipy.episodes(itemepisodes)["episodes"])
 
-        result = list()
+        result = []
         for item in episodelookup:
             if item["show"]["uri"] not in filterlist:
                 result.append(item)
@@ -132,8 +132,8 @@ class PlaylistGenerator:
             )["items"]
             if playlistitem["track"] is not None
         ]
-        tracks = list()
-        episodes = list()
+        tracks = []
+        episodes = []
         for item in newplaylist:
             if item["episode"]:
                 if not _is_played(item):
@@ -150,9 +150,9 @@ class PlaylistGenerator:
         keyword arguments:
         epcount -- the number of unplayed episodes to retrieve from each show
         """
-        allepisodes = list()
+        allepisodes = []
 
-        saved_show_listing = list()
+        saved_show_listing = []
         savedshows = self.spotipy.current_user_saved_shows()
         # we need to paginate this to make sure all saved shows are grabbed
         while savedshows:
@@ -164,7 +164,7 @@ class PlaylistGenerator:
 
         for show in saved_show_listing:
             showepisodes = self.spotipy.show_episodes(show["show"]["uri"])
-            episodelisting = list()
+            episodelisting = []
             while showepisodes:
                 # Use pagination to grab batches and drop the episodes we've heard before.
                 # Don't move on until we have at least epcount from each show.
@@ -202,7 +202,7 @@ class PlaylistGenerator:
         # Get recently played
         # it would be nice to have 100 but it looks like the endpoint only supports 50
         recentplayed = self.spotipy.current_user_recently_played()
-        recentplayeduri = list()
+        recentplayeduri = []
         while recentplayed:
             recentplayeduri.extend(
                 [recent["track"]["uri"] for recent in recentplayed["items"]]
@@ -220,7 +220,7 @@ class PlaylistGenerator:
                 if recent["track"]["uri"].split(":")[1] == "track":
                     recentplayeduri.append(recent["track"]["uri"])
 
-        nodupes = dict()
+        nodupes = {}
         for track in tracks:
             if (
                 track["uri"] not in recentplayeduri
@@ -254,7 +254,7 @@ class PlaylistGenerator:
         episodes = self.cull_shows(episodes, self.config["filter_show"])
         allepisodes = self.podcast_episode_listing()
 
-        allepisodesdict = dict()
+        allepisodesdict = {}
 
         for entry in allepisodes:
             allepisodesdict[entry["uri"]] = entry
@@ -267,7 +267,7 @@ class PlaylistGenerator:
         for episode in episodes:
             allepisodes.insert(0, episode)
 
-        sortedplaylist = list()
+        sortedplaylist = []
 
         while len(tracks) > 0:
             sortedplaylist.append(allepisodes.pop(0)["uri"])
