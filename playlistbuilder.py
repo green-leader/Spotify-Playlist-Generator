@@ -64,14 +64,22 @@ class PlaylistGenerator:
 
     def load_config(self):
         """
-        check for a remote config spec in description, if it's there go ahead an try to load it.
+        Check if this is running in the cloud, if not try to load a config file locally.
         """
+        try:
+            if "FUNCTIONS_WORKER_RUNTIME" not in os.environ:
+                logging.info("Using local config file")
+                with open("config.staging.json", "r") as f:
+                    self.config = json.load(f)
+                return
+        except KeyError:
+            pass
         playlist = self.spotipy.playlist(self.get_playlist("name", self.plname))
         # Spotify escapes slashes, so we need to fix that
-        remote_config = str(playlist["description"]).replace("REMOTE_CONFIG=", "")
-        remote_config = remote_config.replace("&#x2F;", "/")
-        logging.info(remote_config)
-        req = requests.get(remote_config)
+        config = str(playlist["description"]).replace("REMOTE_CONFIG=", "")
+        config = config.replace("&#x2F;", "/")
+        logging.info(config)
+        req = requests.get(config)
         self.config = json.loads(req.content)
 
     def get_playlist(self, field, search):
