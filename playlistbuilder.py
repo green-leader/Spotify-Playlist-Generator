@@ -247,6 +247,30 @@ class PlaylistGenerator:
             newtracks.extend(recommendations["tracks"])
         return newtracks
 
+    def get_tracks(self, origins: list = None) -> list:
+        """
+        Iterate through the origins list and grab all of the tracks found inside.
+        origins should be a list of playlist names with songs that should be used.
+        defaults to using 50 of the user's liked songs.
+        returns a list of track items
+        """
+        if origins is None:
+            origins = [""]
+        tracks = []
+        for origin in origins:
+            if "" == origin:  # default case
+                for item in self.spotipy.current_user_saved_tracks(limit=50)["items"]:
+                    tracks.append(item["track"])
+                continue
+
+            playlist_id = self.get_playlist("name", origin)
+            for item in self.spotipy.playlist_tracks(playlist_id, fields="items")[
+                "items"
+            ]:
+                if "track" in item["track"]["uri"]:
+                    tracks.append(item["track"])
+        return tracks
+
     def main_build(self):
         """
         Entrypoint to actually build and push the playlist
