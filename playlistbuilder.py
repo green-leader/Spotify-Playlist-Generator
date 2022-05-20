@@ -247,7 +247,7 @@ class PlaylistGenerator:
             newtracks.extend(recommendations["tracks"])
         return newtracks
 
-    def get_tracks(self, origins: list = None) -> list:
+    def get_tracks(self, origins: list = None, shuffle: bool = True) -> list:
         """
         Iterate through the origins list and grab all of the tracks found inside.
         origins should be a list of playlist names with songs that should be used.
@@ -269,6 +269,10 @@ class PlaylistGenerator:
             ]:
                 if "track" in item["track"]["uri"]:
                     tracks.append(item["track"])
+        if shuffle:
+            import random
+
+            random.shuffle(tracks)
         return tracks
 
     def main_build(self):
@@ -276,9 +280,11 @@ class PlaylistGenerator:
         Entrypoint to actually build and push the playlist
         """
         dailylistenid = self.create_playlist(name=self.plname)
-        tracks, episodes = self.playlist_template(
+        _, episodes = self.playlist_template(
             templatename=self.config["playlist_template"]
         )
+
+        tracks = self.get_tracks()
         tracks = self.remove_tracks(
             tracks, exclude=self.spotipy.playlist_items(dailylistenid)
         )
