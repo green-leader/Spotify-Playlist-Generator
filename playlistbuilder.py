@@ -62,16 +62,28 @@ class PlaylistGenerator:
             retries=10,
         )
 
-    def load_config(self):
+        # Check for an environmental variable that will be defined on Production
+        try:
+            if "FUNCTIONS_WORKER_RUNTIME" not in os.environ:
+                self.local_config = True
+        except KeyError:
+            pass
+        self.config = None
+
+    def load_config(self, local: bool = False) -> None:
         """
-        check for a remote config spec in description, if it's there go ahead an try to load it.
+        Check if this is running in the cloud, if not try to load a config file locally.
         """
+        if local:
+            with open("config.staging.json", "r") as f:
+                self.config = json.load(f)
+            return
         playlist = self.spotipy.playlist(self.get_playlist("name", self.plname))
         # Spotify escapes slashes, so we need to fix that
-        remote_config = str(playlist["description"]).replace("REMOTE_CONFIG=", "")
-        remote_config = remote_config.replace("&#x2F;", "/")
-        logging.info(remote_config)
-        req = requests.get(remote_config)
+        config = str(playlist["description"]).replace("REMOTE_CONFIG=", "")
+        config = config.replace("&#x2F;", "/")
+        logging.info(config)
+        req = requests.get(config)
         self.config = json.loads(req.content)
 
     def get_playlist(self, field, search):
@@ -239,14 +251,44 @@ class PlaylistGenerator:
             newtracks.extend(recommendations["tracks"])
         return newtracks
 
+    def get_tracks(self, origins: list = None, shuffle: bool = True) -> list:
+        """
+        Iterate through the origins list and grab all of the tracks found inside.
+        origins should be a list of playlist names with songs that should be used.
+        defaults to using 50 of the user's liked songs.
+        returns a list of track items
+        """
+        if origins is None:
+            origins = [""]
+        tracks = []
+        for origin in origins:
+            if "" == origin:  # default case
+                for item in self.spotipy.current_user_saved_tracks(limit=50)["items"]:
+                    tracks.append(item["track"])
+                continue
+
+            playlist_id = self.get_playlist("name", origin)
+            for item in self.spotipy.playlist_tracks(playlist_id, fields="items")[
+                "items"
+            ]:
+                if "track" in item["track"]["uri"]:
+                    tracks.append(item["track"])
+        if shuffle:
+            import random
+
+            random.shuffle(tracks)
+        return tracks
+
     def main_build(self):
         """
         Entrypoint to actually build and push the playlist
         """
         dailylistenid = self.create_playlist(name=self.plname)
-        tracks, episodes = self.playlist_template(
+        _, episodes = self.playlist_template(
             templatename=self.config["playlist_template"]
         )
+
+        tracks = self.get_tracks()
         tracks = self.remove_tracks(
             tracks, exclude=self.spotipy.playlist_items(dailylistenid)
         )
@@ -283,6 +325,19 @@ class PlaylistGenerator:
 
 
 if __name__ == "__main__":
+    import sys
+
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
+
     build = PlaylistGenerator(plname="Daily Listen - Staging")
-    build.load_config()
+    build.load_config(local=build.local_config)
     build.main_build()
