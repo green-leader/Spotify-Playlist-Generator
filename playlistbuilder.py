@@ -68,6 +68,7 @@ class PlaylistGenerator:
                 self.local_config = True
         except KeyError:
             pass
+        self.config = None
 
     def load_config(self, local: bool = False) -> None:
         """
