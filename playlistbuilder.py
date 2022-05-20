@@ -62,18 +62,21 @@ class PlaylistGenerator:
             retries=10,
         )
 
-    def load_config(self):
+        # Check for an environmental variable that will be defined on Production
+        try:
+            if "FUNCTIONS_WORKER_RUNTIME" not in os.environ:
+                self.local_config = True
+        except KeyError:
+            pass
+
+    def load_config(self, local: bool = False) -> None:
         """
         Check if this is running in the cloud, if not try to load a config file locally.
         """
-        try:
-            if "FUNCTIONS_WORKER_RUNTIME" not in os.environ:
-                logging.info("Using local config file")
-                with open("config.staging.json", "r") as f:
-                    self.config = json.load(f)
-                return
-        except KeyError:
-            pass
+        if local:
+            with open("config.staging.json", "r") as f:
+                self.config = json.load(f)
+            return
         playlist = self.spotipy.playlist(self.get_playlist("name", self.plname))
         # Spotify escapes slashes, so we need to fix that
         config = str(playlist["description"]).replace("REMOTE_CONFIG=", "")
@@ -335,5 +338,5 @@ if __name__ == "__main__":
     root.addHandler(handler)
 
     build = PlaylistGenerator(plname="Daily Listen - Staging")
-    build.load_config()
+    build.load_config(local=build.local_config)
     build.main_build()
