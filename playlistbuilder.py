@@ -5,6 +5,7 @@ Built spotify playlist and push it to the appropriate endpoint
 import json
 import logging
 import os
+import random
 import requests
 import spotipy
 from azure.identity import DefaultAzureCredential
@@ -263,7 +264,11 @@ class PlaylistGenerator:
         tracks = []
         for origin in origins:
             if "" == origin:  # default case
-                for item in self.spotipy.current_user_saved_tracks(limit=50)["items"]:
+                total_tracks = self.spotipy.current_user_saved_tracks(limit=50)["total"]
+                random_offset = random.randint(0, total_tracks - 50)
+                for item in self.spotipy.current_user_saved_tracks(
+                    limit=50, offset=random_offset
+                )["items"]:
                     tracks.append(item["track"])
                 continue
 
@@ -274,8 +279,6 @@ class PlaylistGenerator:
                 if "track" in item["track"]["uri"]:
                     tracks.append(item["track"])
         if shuffle:
-            import random
-
             random.shuffle(tracks)
         return tracks
 
