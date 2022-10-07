@@ -332,7 +332,7 @@ class PlaylistGenerator:
                 # Handle when the replace endpoint is broken
                 print("429 error actually a 500 error")
                 # Clear target playlist
-                DailyListen = sp.playlist_items(
+                DailyListen = self.spotipy.playlist_items(
                     dailylistenid, fields="items(track(uri)),next"
                 )
                 while DailyListen:
