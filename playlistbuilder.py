@@ -322,9 +322,33 @@ class PlaylistGenerator:
             except IndexError:
                 pass
 
-        self.spotipy.user_playlist_replace_tracks(
-            self.spotipy.me()["id"], dailylistenid, tracks=sortedplaylist
-        )
+        try:
+            self.spotipy.user_playlist_replace_tracks(
+                self.spotipy.me()["id"], dailylistenid, tracks=sortedplaylist
+            )
+        except spotipy.exceptions.SpotifyException as err:
+            str_err = str(err)
+            if "429" in str_err and "500" in str_err:
+                # Handle when the replace endpoint is broken
+                print("429 error actually a 500 error")
+                # Clear target playlist
+                DailyListen = self.spotipy.playlist_items(
+                    dailylistenid, fields="items(track(uri)),next"
+                )
+                while DailyListen:
+                    itemsDailyListen = [
+                        trackDailyListen["track"]["uri"]
+                        for trackDailyListen in DailyListen["items"]
+                    ]
+                    self.spotipy.playlist_remove_all_occurrences_of_items(
+                        dailylistenid, items=itemsDailyListen
+                    )
+                    if DailyListen["next"]:
+                        DailyListen = self.spotipy.next(DailyListen)
+                    else:
+                        DailyListen = None
+                # Write to target playlost
+                self.spotipy.playlist_add_items(dailylistenid, items=sortedplaylist)
 
 
 if __name__ == "__main__":
