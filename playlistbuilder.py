@@ -339,6 +339,7 @@ class PlaylistGenerator:
                     itemsDailyListen = [
                         trackDailyListen["track"]["uri"]
                         for trackDailyListen in DailyListen["items"]
+                        if trackDailyListen["track"] is not None
                     ]
                     self.spotipy.playlist_remove_all_occurrences_of_items(
                         dailylistenid, items=itemsDailyListen
