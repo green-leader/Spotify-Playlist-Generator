@@ -30,6 +30,14 @@ def _is_played(episode, timevar=120000):
     return episode["resume_point"]["fully_played"]
 
 
+def _is_playable(track):
+    """
+    Check if track is currently in a state that can be played if selected.
+    """
+    if "US" in track["available_markets"]:
+        return True
+
+
 class PlaylistGenerator:
     """
     Create spotipy object and manage all the work needing to be done
@@ -233,6 +241,7 @@ class PlaylistGenerator:
                 if recent["track"]["uri"].split(":")[1] == "track":
                     recentplayeduri.append(recent["track"]["uri"])
 
+        tracks = list(filter(_is_playable, tracks))
         nodupes = {}
         for track in tracks:
             if (
