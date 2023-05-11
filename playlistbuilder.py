@@ -268,8 +268,6 @@ class PlaylistGenerator:
         defaults to using 50 of the user's liked songs.
         returns a list of track items
         """
-        if origins is None:
-            origins = [""]
         tracks = []
         for origin in origins:
             if "" == origin:  # default case
@@ -296,16 +294,23 @@ class PlaylistGenerator:
         Entrypoint to actually build and push the playlist
         """
         dailylistenid = self.create_playlist(name=self.plname)
-        _, episodes = self.playlist_template(
-            templatename=self.config["playlist_template"]
-        )
 
-        tracks = self.get_tracks()
+        if "playlist_template" in self.config:
+            _, episodes = self.playlist_template(
+                templatename=self.config["playlist_template"]
+            )
+        else:
+            episodes = []
+
+        if "song_origin" not in self.config:
+            self.config["song_origin"] = [""]
+        tracks = self.get_tracks(origins=self.config["song_origin"])
         tracks = self.remove_tracks(
             tracks, exclude=self.spotipy.playlist_items(dailylistenid)
         )
         # Cull out blacklisted shows
-        episodes = self.cull_shows(episodes, self.config["filter_show"])
+        if len(episodes) > 0:
+            episodes = self.cull_shows(episodes, self.config["filter_show"])
         allepisodes = self.podcast_episode_listing()
 
         allepisodesdict = {}
