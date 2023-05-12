@@ -337,9 +337,12 @@ class PlaylistGenerator:
                 pass
 
         try:
+            # spotify API says you can add a maximum of 100 tracks per request
+            # limit to 99 as we're not sure wether it's inclusive or not
             self.spotipy.user_playlist_replace_tracks(
-                self.spotipy.me()["id"], dailylistenid, tracks=sortedplaylist
+                self.spotipy.me()["id"], dailylistenid, tracks=sortedplaylist[:99]
             )
+
         except spotipy.exceptions.SpotifyException as err:
             str_err = str(err)
             if "429" in str_err and "500" in str_err:
@@ -362,7 +365,7 @@ class PlaylistGenerator:
                         DailyListen = self.spotipy.next(DailyListen)
                     else:
                         DailyListen = None
-                # Write to target playlost
+                # Write to target playlist
                 self.spotipy.playlist_add_items(dailylistenid, items=sortedplaylist)
 
 
