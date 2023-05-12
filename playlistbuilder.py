@@ -84,8 +84,11 @@ class PlaylistGenerator:
         Check if this is running in the cloud, if not try to load a config file locally.
         """
         if local:
-            with open("config.staging.json", "r") as f:
-                self.config = json.load(f)
+            try:
+                with open("config.staging.json", "r") as f:
+                    self.config = json.load(f)
+            except FileNotFoundError:
+                self.config = {}
             return
         playlist = self.spotipy.playlist(self.get_playlist("name", self.plname))
         # Spotify escapes slashes, so we need to fix that
