@@ -132,3 +132,4 @@ local.settings.json
 # Project specific files
 .cache
 .secrets
+config.staging.json
