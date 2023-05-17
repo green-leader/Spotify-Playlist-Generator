@@ -51,27 +51,27 @@ class Test_is_played_Method(unittest.TestCase):
         episode = sampleepisode.copy()
         episode["resume_point"]["fully_played"] = False
         episode["resume_point"]["resume_position_ms"] = 0
-        assert _is_played(episode) == False
+        assert _is_played(episode) is False
 
     @staticmethod
     def test_is_played_fully_played():
         episode = sampleepisode.copy()
         episode["resume_point"]["fully_played"] = True
-        assert _is_played(episode) == True
+        assert _is_played(episode) is True
 
     @staticmethod
     def test_is_played_partially_played():
         episode = sampleepisode.copy()
         episode["resume_point"]["fully_played"] = False
         episode["resume_point"]["resume_position_ms"] = episode["duration_ms"] - 60000
-        assert _is_played(episode) == True
+        assert _is_played(episode) is True
 
     @staticmethod
     def test_is_played_short_episode():
         episode = sampleepisode.copy()
         episode["resume_point"]["fully_played"] = False
         episode["duration_ms"] = 59999
-        assert _is_played(episode) == False
+        assert _is_played(episode) is False
 
 
 class TestInitMethod(unittest.TestCase):
