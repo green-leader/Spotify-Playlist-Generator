@@ -322,7 +322,7 @@ class PlaylistGenerator:
             allepisodesdict[entry["uri"]] = entry
 
         for entry in episodes.copy():
-            if entry["uri"] in allepisodesdict.keys():
+            if entry["uri"] in allepisodesdict:
                 episodes.remove(entry)
             allepisodesdict[entry["uri"]] = entry
 
