@@ -11,7 +11,7 @@ azure-keyvault-secrets==4.6.0
 certifi==2023.7.22
 cffi==1.15.1
 charset-normalizer==3.1.0
-cryptography==41.0.0
+cryptography==41.0.3
 dill==0.3.6
 idna==3.4
 isodate==0.6.1
