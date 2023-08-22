@@ -167,7 +167,7 @@ class PlaylistGenerator:
 
         return tracks, episodes
 
-    def podcast_episode_listing(self, epcount=10):
+    def podcast_episode_listing(self, epcount: int = 10, filterlist: list = None):
         """
         Retrieve a few episodes from all of the shows the user follows.
         Return in descending order of release. (Newest first)
@@ -175,6 +175,9 @@ class PlaylistGenerator:
         epcount -- the number of unplayed episodes to retrieve from each show
         """
         allepisodes = []
+
+        if filterlist is None:
+            filterlist = []
 
         saved_show_listing = []
         savedshows = self.spotipy.current_user_saved_shows()
@@ -187,6 +190,8 @@ class PlaylistGenerator:
                 savedshows = None
 
         for show in saved_show_listing:
+            if show["show"]["uri"] in filterlist:
+                continue
             showepisodes = self.spotipy.show_episodes(show["show"]["uri"])
             episodelisting = []
             while showepisodes:
@@ -314,7 +319,9 @@ class PlaylistGenerator:
         # Cull out blacklisted shows
         if len(episodes) > 0:
             episodes = self.cull_shows(episodes, self.config["filter_show"])
-        allepisodes = self.podcast_episode_listing()
+        allepisodes = self.podcast_episode_listing(
+            filterlist=self.config["filter_show"]
+        )
 
         allepisodesdict = {}
 
