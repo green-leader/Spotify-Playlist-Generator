@@ -147,6 +147,12 @@ class PlaylistGenerator:
         Use existing playlist as an initial seed for the new playlist
         """
         templateplaylistid = self.get_playlist("name", templatename)
+        print(f"templateplaylistid {templateplaylistid}")
+        if templateplaylistid is None:
+            print(
+                "Something happened in playlist_template() and we couldn't find the template"
+            )
+            return [], []
 
         fields = "items(track),next"  # Next permits pagination
         newplaylist = [
@@ -316,6 +322,10 @@ class PlaylistGenerator:
         tracks = self.remove_tracks(
             tracks, exclude=self.spotipy.playlist_items(dailylistenid)
         )
+
+        # if filter_show is undefined, define it
+        if "filter_show" not in self.config:
+            self.config["filter_show"] = []
         # Cull out blacklisted shows
         if len(episodes) > 0:
             episodes = self.cull_shows(episodes, self.config["filter_show"])

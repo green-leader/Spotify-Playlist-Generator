@@ -1,6 +1,7 @@
 """
 Provide spotipy cache handling with Azure Key Vault as the backend for secrets
 """
+
 import logging
 import json
 import sys
