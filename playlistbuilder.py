@@ -265,15 +265,7 @@ class PlaylistGenerator:
             ):
                 nodupes[track["uri"]] = track
 
-        newtracks = list(nodupes.values())
-        trackrecommendcount = len(tracks) - len(newtracks)
-        if trackrecommendcount:
-            recommendations = self.spotipy.recommendations(
-                seed_tracks=[track["id"] for track in tracks[:5]],
-                limit=(trackrecommendcount),
-            )
-            newtracks.extend(recommendations["tracks"])
-        return newtracks
+        return list(nodupes.values())
 
     def get_tracks(self, origins: list = None, shuffle: bool = True) -> list:
         """
