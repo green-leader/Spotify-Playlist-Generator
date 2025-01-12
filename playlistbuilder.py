@@ -75,6 +75,8 @@ class PlaylistGenerator:
         try:
             if "FUNCTIONS_WORKER_RUNTIME" not in os.environ:
                 self.local_config = True
+            if "PRODUCTION" not in os.environ:
+                self.local_config = True
         except KeyError:
             pass
         self.config = None
