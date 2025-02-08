@@ -104,6 +104,8 @@ class PlaylistGenerator:
         """
         Search through all of the playlists, and return the first uri that matches by field
         """
+        if search.startswith("uid:"):
+            return search[4:]
         playlists = self.spotipy.current_user_playlists()
         while playlists:
             for playlist in playlists["items"]:
@@ -288,11 +290,14 @@ class PlaylistGenerator:
                 continue
 
             playlist_id = self.get_playlist("name", origin)
-            for item in self.spotipy.playlist_tracks(playlist_id, fields="items")[
-                "items"
-            ]:
-                if "track" in item["track"]["uri"]:
-                    tracks.append(item["track"])
+            print(f"playlist_id {playlist_id}")
+            
+            if playlist_id is not None:
+                for item in self.spotipy.playlist_tracks(playlist_id, fields="items")[
+                    "items"
+                ]:
+                    if "track" in item["track"]["uri"]:
+                        tracks.append(item["track"])
         if shuffle:
             random.shuffle(tracks)
         return tracks
