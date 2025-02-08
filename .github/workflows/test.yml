@@ -8,17 +8,16 @@ on:
 
 jobs:
   lint-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python 3.8
+    - name: Set up Python
       uses: actions/setup-python@v3
       with:
-        python-version: "3.8"
+        python-version: "3.11"
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install flake8 nose black
+        pip install flake8 nose2 black
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
       run: |
@@ -32,4 +31,4 @@ jobs:
         black --check .
     - name: Test with nose
       run: |
-        nosetests
+        nose2
