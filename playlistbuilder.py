@@ -291,7 +291,7 @@ class PlaylistGenerator:
 
             playlist_id = self.get_playlist("name", origin)
             print(f"playlist_id {playlist_id}")
-            
+
             if playlist_id is not None:
                 for item in self.spotipy.playlist_tracks(playlist_id, fields="items")[
                     "items"
