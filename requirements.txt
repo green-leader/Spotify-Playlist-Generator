@@ -1,7 +1,7 @@
 azure-common==1.1.28
 azure-core==1.32.0
 azure-functions==1.21.3
-azure-identity==1.20.0
+azure-identity==1.21.0
 azure-keyvault==4.2.0
 azure-keyvault-certificates==4.9.0
 azure-keyvault-keys==4.10.0
