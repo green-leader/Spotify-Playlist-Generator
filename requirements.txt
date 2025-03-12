@@ -12,7 +12,7 @@ charset-normalizer==3.4.1
 cryptography==44.0.2
 idna==3.10
 isodate==0.7.2
-msal==1.31.1
+msal==1.32.0
 msal-extensions==1.2.0
 portalocker==2.10.1
 pycparser==2.22
