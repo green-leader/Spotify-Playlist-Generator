@@ -18,7 +18,7 @@ portalocker==2.10.1
 pycparser==2.22
 PyJWT==2.10.1
 redis==5.2.1
-requests==2.32.3
+requests==2.33.0
 six==1.17.0
 spotipy==2.25.1
 typing_extensions==4.13.0
